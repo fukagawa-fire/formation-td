@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FUKAGAWA FIRE FORMATION</title>
+<style>
+:root{--bg:#f4f6f8;--fg:#1c2530;--card:#fff;--line:#cfd6dd;--ok:#d9f2dc;--ng:#f6d3d3;--boy:#3b82f6;--girl:#ec6aa5;--gold:#f5b800;--op:#e8ecf0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12171d;--fg:#e8edf2;--card:#1c242d;--line:#3a4653;--ok:#1f4a2a;--ng:#5a2424;--op:#26303a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12171d;--fg:#e8edf2;--card:#1c242d;--line:#3a4653;--ok:#1f4a2a;--ng:#5a2424;--op:#26303a;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;padding:10px}
+h1{font-size:17px;margin:4px 0 8px}
+.court{display:grid;grid-template-columns:1fr 1fr .6fr;grid-template-rows:auto minmax(190px,auto) auto;gap:3px;background:var(--line);border:2px solid var(--line);border-radius:10px;overflow:hidden}
+.court>div{background:var(--card);padding:4px;display:flex;flex-wrap:wrap;gap:4px;align-content:center;justify-content:center;position:relative;min-height:54px}
+.lab{position:absolute;top:1px;left:4px;font-size:9px;opacity:.6;pointer-events:none}
+#in{grid-area:2/1;flex-wrap:nowrap!important;gap:2px!important}.col{display:flex;flex-direction:column;gap:4px;justify-content:center;align-items:center;flex:1}#opp{grid-area:2/2;background:var(--op)!important;opacity:.8}#ctr{grid-area:2/3;flex-direction:column;flex-wrap:nowrap;background:var(--ok)!important}
+#red1{grid-area:1/1;background:var(--ng)!important}#red2{grid-area:3/1;background:var(--ng)!important}
+#top{grid-area:1/2;background:var(--ok)!important}#bot{grid-area:3/2;background:var(--ok)!important}
+#cor{grid-area:1/3;background:var(--ok)!important}#corB{grid-area:3/3;background:var(--ok)!important}
+.chip{width:50px;height:38px;border-radius:19px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:700;color:#fff;line-height:1.05;user-select:none;z-index:2;border:3px solid transparent}
+.m{background:var(--boy)}.f{background:var(--girl)}
+#in .chip{cursor:pointer;box-shadow:0 0 0 2px var(--fg) inset}
+.btns{display:flex;gap:8px;margin:10px 0}button{flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-size:14px;font-weight:600}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;line-height:1.7}.panel b{display:inline-block;min-width:6.5em}
+.hint{font-size:12px;opacity:.7;margin:4px 0}
+</style></head><body>
+<h1>🔥 FUKAGAWA FIRE FORMATION<br><small style="font-size:11px;opacity:.7;font-weight:600">深川ファイヤー 陣形マップ ｜ v<span id="ver">1.14</span></small></h1>
+<div class="hint">内野の選手をタップ ＝ 当たって外野へ。あさひ・こうた＝センターメイン</div>
+<div class="court">
+<div id="red1"><span class="lab">進入禁止</span></div><div id="top"><span class="lab">外野：上</span></div><div id="cor"><span class="lab">カド</span></div>
+<div id="in"><span class="lab">内野 後ろ(女子)｜前(男子)→</span><div class="col" id="inB"></div><div class="col" id="inF"></div></div><div id="opp"><span class="lab">相手内野</span></div><div id="ctr"><span class="lab">センター</span></div>
+<div id="red2"><span class="lab">進入禁止</span></div><div id="bot"><span class="lab">外野：下</span></div><div id="corB"><span class="lab">カド</span></div>
+</div>
+<div class="btns"><button id="undo">↩ 一つ戻す</button><button id="reset">初期配置に戻す</button></div>
+<div class="panel" id="info"></div>
+<script>
+const P={'かんたろう':'m','ゆうせい':'m','こうた':'m','あさひ':'m','まひろ':'m','せい':'m','ほたる':'f','ゆずな':'f'};
+const Q=['かんたろう','ゆうせい','こうた'],A='あさひ',CM=['あさひ','こうた'],M=['まひろ','せい'],SIDES=['top','bot'],Z=['top','bot','ctr','cor','corB'];
+const init=()=>({inf:['あさひ','まひろ','せい','ほたる','ゆずな'],top:['かんたろう'],bot:['ゆうせい'],ctr:['こうた'],cor:[],corB:[],ret:[]});
+let S=init(),H=[];
+const outs=s=>Z.flatMap(z=>s[z]);
+const isF=n=>P[n]==='f';
+const nextRet=s=>Q.find(n=>!s.ret.includes(n)&&outs(s).includes(n));
+function place(s,p){
+  const total=outs(s).length+1;
+  if(total===4)for(const k of CM){if(k===p)continue;const z=SIDES.find(z=>s[z].includes(k));if(z){s[z]=s[z].filter(x=>x!==k);s.ctr.splice(k===A?0:(s.ctr[0]===A?1:0),0,k);}}
+  if(CM.includes(p)){s.ctr.splice(p===A?0:(s.ctr[0]===A?1:0),0,p);return}
+  if(total===7&&isF(p)){const g=SIDES.find(z=>s[z].some(isF));const z=g?SIDES.find(x=>x!==g):(s.top.length<=s.bot.length?'top':'bot');s[z].push(p);return}
+  if(total===7){
+    if(M.includes(p)){const z=SIDES.filter(z=>s[z].some(n=>!isF(n)&&!M.includes(n)&&!CM.includes(n))).sort((a,b)=>s[a].some(n=>M.includes(n))-s[b].some(n=>M.includes(n)))[0];
+      if(z){const o=s[z].find(n=>!isF(n)&&!M.includes(n)&&!CM.includes(n));s[z]=s[z].map(n=>n===o?p:n);const i=s.ctr.indexOf(A);(i>=0?i>(s.ctr.length-1)/2:z==='bot')?s.corB.push(o):s.cor.push(o);return}}
+    const i=s.ctr.indexOf(A);(i>=0&&i>(s.ctr.length-1)/2?s.corB:s.cor).push(p);return}
+  const e=SIDES.find(z=>!s[z].length);if(e){s[e].push(p);return}
+  if(isF(p)){
+    const g=SIDES.find(z=>s[z].some(isF));
+    const z=g?SIDES.find(x=>x!==g):(s.top.length<=s.bot.length?'top':'bot');
+    s[z].push(p);return}
+  const gs=SIDES.find(z=>s[z].some(isF)&&!s[z].some(n=>!isF(n)));
+  if(gs){s[gs].push(p);return}
+  if(M.includes(p)&&s.ctr.includes(A)&&s.ctr.includes('こうた')){const f=SIDES.find(z=>!s[z].some(n=>M.includes(n)));s[f||(s.top.length<=s.bot.length?'top':'bot')].push(p);return}
+  if(M.includes(p)){
+    const z=SIDES.filter(z=>s[z].some(n=>!isF(n)&&!M.includes(n)&&!CM.includes(n))).sort((a,b)=>s[a].some(n=>M.includes(n))-s[b].some(n=>M.includes(n)))[0];
+    if(z){const o=s[z].find(n=>!isF(n)&&!M.includes(n));s[z]=s[z].map(n=>n===o?p:n);s.ctr.push(o);return}
+  }
+  s.ctr.push(p);
+}
+function girlToSide(s,n,z,i){
+  const g=SIDES.find(x=>s[x].some(isF));
+  let c=(g?SIDES.filter(x=>x!==g):SIDES).filter(x=>s[x].some(m=>!isF(m)));
+  if(!c.length)c=SIDES.filter(x=>s[x].some(m=>!isF(m)));
+  if(!c.length)return;
+  const tr=x=>Math.min(...s[x].filter(m=>!isF(m)).map(tier));
+  const t=c.slice().sort((a,b)=>tr(a)-tr(b))[0],ms=s[t].filter(m=>!isF(m));
+  s[t]=s[t].filter(isF);s[t].push(n);
+  s[z][i]=ms[0];ms.slice(1).forEach(m=>s.ctr.push(m));
+}
+function pairM(s){
+  const loc=n=>Z.find(z=>s[z].includes(n));
+  if(!M.every(n=>loc(n)))return;
+  if(!outs(s).some(n=>CM.includes(n)))return;
+  if(!s.ctr.some(m=>!isF(m)))return;
+  const pos=n=>{const z=loc(n);return z==='cor'?-1:z==='corB'?99:s.ctr.indexOf(n)};
+  const ms=M.filter(n=>!SIDES.includes(loc(n))).sort((a,b)=>pos(a)-pos(b));
+  const free=SIDES.filter(z=>!s[z].some(n=>M.includes(n)));
+  ms.forEach((m,i)=>{
+    const z=free[i];if(!z)return;
+    const mz=loc(m),o=s[z].find(n=>!isF(n)&&!CM.includes(n));
+    if(!o&&mz==='ctr'&&s.ctr.length<2)return;
+    if(o){s[z]=s[z].filter(n=>n!==o);s[mz]=s[mz].map(n=>n===m?o:n)}else s[mz]=s[mz].filter(n=>n!==m);
+    s[z].push(m);
+  });
+}
+function strongC(s){
+  if(s.ctr.includes(A)||s.ctr.includes('こうた')||s.ctr.some(n=>M.includes(n)))return;
+  const x=s.ctr.find(n=>n==='かんたろう'||n==='ゆうせい');
+  const mm=M.find(n=>SIDES.some(z=>s[z].includes(n)));const z=mm&&SIDES.find(z=>s[z].includes(mm));
+  if(!x||!z)return;
+  s.ctr=s.ctr.map(n=>n===x?mm:n);
+  s[z]=s[z].map(n=>n===mm?x:n);
+}
+function sideSup(s){
+  if(!(s.ctr.includes(A)&&s.ctr.includes('こうた')))return;
+  const sd=n=>SIDES.find(z=>s[z].includes(n));
+  for(const x of ['かんたろう','ゆうせい']){
+    if(!s.ctr.includes(x))continue;
+    const mz=sd('まひろ'),sz=sd('せい');
+    const mc=z=>s[z].filter(n=>!isF(n)).length;
+    let t=(mz&&s[mz].every(n=>n==='まひろ')&&mc(mz)<2)?mz:SIDES.filter(z=>mc(z)<2).sort((a,b)=>s[a].length-s[b].length||((b===sz)-(a===sz)))[0];
+    if(!t)continue;
+    s.ctr=s.ctr.filter(n=>n!==x);s[t].push(x);
+  }
+}
+const tier=n=>isF(n)?9:(n===A||n==='こうた')?1:M.includes(n)?2:3;
+function tierSwap(s){
+  if(outs(s).length!==3||s.ctr.length!==1||s.top.length!==1||s.bot.length!==1)return;
+  const c=s.ctr[0],z=tier(s.top[0])<=tier(s.bot[0])?'top':'bot';
+  const b=s[z][0];
+  if(tier(b)<tier(c)){s.ctr=[b];s[z]=[c]}
+}
+function norm(s){
+  tierSwap(s);
+  strongC(s);
+  if(outs(s).length<4)return;
+  pairM(s);
+  sideSup(s);
+  for(const z of SIDES){
+    if(!s[z].some(isF)||s[z].some(m=>!isF(m)))continue;
+    let c=s.ctr.filter(m=>!CM.includes(m)&&!isF(m));if(!c.length&&s.ctr.includes(A)&&s.ctr.includes('こうた'))c=['こうた'];
+    if(!c.length||s.ctr.length<2)continue;
+    const m=c.find(x=>M.includes(x))||c[0];
+    s.ctr=s.ctr.filter(x=>x!==m);s[z].push(m);
+  }
+}
+function hit(n){
+  H.push(JSON.stringify(S));
+  S.inf=S.inf.filter(x=>x!==n);
+  const r=nextRet(S);
+  if(r){const z=Z.find(z=>S[z].includes(r));const i=S[z].indexOf(r);S[z][i]=n;S.inf.push(r);S.ret.push(r);if(isF(n)&&z!=='top'&&z!=='bot')girlToSide(S,n,z,i)}
+  else place(S,n);norm(S);
+  render();
+}
+const chips={};
+for(const n in P){const c=document.createElement('div');c.className='chip '+P[n]+(n===A?' A':'');c.textContent=n;c.onclick=()=>{if(c.parentElement.classList.contains('col'))hit(n)};chips[n]=c}
+function render(){
+  const first={};for(const n in chips)first[n]=chips[n].getBoundingClientRect();
+  const put=(id,arr)=>{const el=document.getElementById(id);arr.forEach(n=>el.appendChild(chips[n]))};
+  const sd=a=>[...a].sort((x,y)=>(isF(y)-isF(x)));
+  put('inB',S.inf.filter(isF));const bs=S.inf.filter(n=>!isF(n)&&n!==A);if(S.inf.includes(A))bs.splice(Math.floor((bs.length+1)/2),0,A);put('inF',bs);put('top',sd(S.top));put('bot',sd(S.bot));put('ctr',S.ctr);put('cor',S.cor);put('corB',S.corB);
+  for(const n in chips){const c=chips[n],b=c.getBoundingClientRect(),f=first[n];
+    if(f.width&&(f.left!==b.left||f.top!==b.top))c.animate([{transform:`translate(${f.left-b.left}px,${f.top-b.top}px)`},{transform:'none'}],{duration:380,easing:'ease'})}
+  info();document.getElementById('undo').disabled=!H.length;
+}
+function loc(n){const z=Z.find(z=>S[z].includes(n));if(!z)return'内野（待機中）';return{top:'外野・上',bot:'外野・下',ctr:'外野・センター',cor:'外野・カド（上）',corB:'外野・カド（下）'}[z]}
+function info(){
+  const o=outs(S).length,nr=nextRet(S);
+  const gs=['ほたる','ゆずな'].filter(n=>outs(S).includes(n));
+  const gz=new Set(gs.map(loc));
+  let gt=!gs.length?'なし（女子は内野）':gs.map(n=>n+'→'+loc(n)).join(' / ')+(gz.size===2?'　★逆サイド展開':'')+(o>=4&&gs.length?'　★男子サポート':'');
+  const lt=M.map(n=>n+'：'+loc(n)).join(' / ');
+  document.getElementById('info').innerHTML=
+   `<div><b>外野人数</b>${o}人 ／ 内野${S.inf.length}人</div>`+
+   `<div><b>次の復帰選手</b>${nr||'なし（復帰枠 終了）'}</div>`+
+   `<div><b>女子ルール</b>${gt}</div>`+
+   `<div><b>横攻撃待機</b>${lt}</div>`+
+   `<div><b>カド配置</b>${(S.cor[0]||S.corB[0])?(S.cor[0]||S.corB[0])+'（7人目・あさひ側）':'なし（外野7人で発動）'}</div>`+
+   `<div><b>あさひ</b>${loc(A)}（センターメイン）</div><div><b>こうた</b>${loc('こうた')}（センターメイン）</div>`;
+}
+document.getElementById('undo').onclick=()=>{if(H.length){S=JSON.parse(H.pop());render()}};
+document.getElementById('reset').onclick=()=>{S=init();H=[];render()};
+render();
+</script></body></html>
