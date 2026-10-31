@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>深川TD 陣形マップ</title>
+<title>深川TD-8 陣形マップ</title>
 <style>
-:root{--bg:#f4f6f8;--fg:#1c2530;--card:#fff;--line:#cfd6dd;--ok:#d9f2dc;--ng:#f6d3d3;--boy:#3b82f6;--girl:#ec6aa5;--gold:#f5b800;--op:#e8ecf0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12171d;--fg:#e8edf2;--card:#1c242d;--line:#3a4653;--ok:#1f4a2a;--ng:#5a2424;--op:#26303a;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#12171d;--fg:#e8edf2;--card:#1c242d;--line:#3a4653;--ok:#1f4a2a;--ng:#5a2424;--op:#26303a;color-scheme:dark}
+:root{--bg:#f4f6f8;--fg:#1c2530;--card:#fff;--line:#cfd6dd;--ok:#d9f2dc;--ng:#f6d3d3;--boy:#3b82f6;--girl:#ec6aa5;--gold:#f5b800;--op:#e8ecf0;--pk:#d6458f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12171d;--fg:#e8edf2;--card:#1c242d;--line:#3a4653;--ok:#1f4a2a;--ng:#5a2424;--op:#26303a;--pk:#f08cc0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12171d;--fg:#e8edf2;--card:#1c242d;--line:#3a4653;--ok:#1f4a2a;--ng:#5a2424;--op:#26303a;--pk:#f08cc0;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;padding:10px}
 h1{font-size:17px;margin:4px 0 8px}
+.shake{display:inline-block;filter:hue-rotate(-75deg) saturate(1.4)}
 .court{display:grid;grid-template-columns:1fr 1fr .6fr;grid-template-rows:auto minmax(190px,auto) auto;gap:3px;background:var(--line);border:2px solid var(--line);border-radius:10px;overflow:hidden}
 .court>div{background:var(--card);padding:4px;display:flex;flex-wrap:wrap;gap:4px;align-content:center;justify-content:center;position:relative;min-height:54px}
 .lab{position:absolute;top:1px;left:4px;font-size:9px;opacity:.6;pointer-events:none}
@@ -22,8 +23,8 @@ h1{font-size:17px;margin:4px 0 8px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;line-height:1.7}.panel b{display:inline-block;min-width:6.5em}
 .hint{font-size:12px;opacity:.7;margin:4px 0}
 </style></head><body>
-<h1>🤝 深川TD 陣形マップ<br><small style="font-size:11px;opacity:.7;font-weight:600">FUKAGAWA TD FORMATION ｜ v<span id="ver">2.0</span></small></h1>
-<div class="hint">内野の選手をタップ ＝ 当たって外野へ。いつき・はると＝センターメイン</div>
+<h1><span class="shake">🤝</span> 深川TD-8 陣形マップ<br><small style="font-size:11px;opacity:.8;font-weight:600;color:var(--pk)">FUKAGAWA TD-8 FORMATION ｜ はるとなし ｜ v<span id="ver">1.3</span></small></h1>
+<div class="hint">内野の選手をタップ ＝ 当たって外野へ。いつき＋ひなた＝センター縦2枚（縦攻撃）</div>
 <div class="court">
 <div id="red1"><span class="lab">進入禁止</span></div><div id="top"><span class="lab">外野：上</span></div><div id="cor"><span class="lab">カド</span></div>
 <div id="in"><span class="lab">内野 後ろ(女子)｜前(男子)→</span><div class="col" id="inB"></div><div class="col" id="inF"></div></div><div id="opp"><span class="lab">相手内野</span></div><div id="ctr"><span class="lab">センター</span></div>
@@ -32,100 +33,79 @@ h1{font-size:17px;margin:4px 0 8px}
 <div class="btns"><button id="undo">↩ 一つ戻す</button><button id="reset">初期配置に戻す</button></div>
 <div class="panel" id="info"></div>
 <script>
-const P={'はると':'m','ゆうき':'m','そうすけ':'m','いつき':'m','ひなた':'m','かなた':'m','つむぎ':'f','りん':'f'};
-const Q=['はると','ゆうき','そうすけ'],A='いつき',CM=['いつき','はると'],M=['ひなた','かなた'],SIDES=['top','bot'],Z=['top','bot','ctr','cor','corB'];
-const init=()=>({inf:['いつき','ひなた','かなた','つむぎ','りん'],top:['ゆうき'],bot:['そうすけ'],ctr:['はると'],cor:[],corB:[],ret:[]});
-let S=init(),H=[];
-const outs=s=>Z.flatMap(z=>s[z]);
+/*ENGINE_START*/
+const P={'ゆうき':'m','そうすけ':'m','いつき':'m','ひなた':'m','かなた':'m','つむぎ':'f','かりん':'f','ごりん':'f'};
+const GIRLS=['つむぎ','かりん','ごりん'];
+/* 初期外野の3人。内野が当たるたびにこの順で1人ずつ内野へ戻る（1人1回だけ） */
+const ORDER=['ゆうき','そうすけ','ひなた'];
+const A='いつき',HN='ひなた',CM=[A,HN],M=['かなた'],SIDES=['top','bot'],Z=['top','bot','ctr','cor','corB'];
 const isF=n=>P[n]==='f';
-const cands=s=>Q.filter(n=>!s.ret.includes(n)&&outs(s).includes(n));
+const tier=n=>isF(n)?9:CM.includes(n)?1:M.includes(n)?2:3;
+const init=()=>({inf:['いつき','かなた','つむぎ','かりん','ごりん'],top:['ゆうき'],bot:['そうすけ'],ctr:['ひなた'],cor:[],corB:[],ret:[]});
+const outs=s=>Z.flatMap(z=>s[z]);
+const canRet=(s,n)=>!s.ret.includes(n)&&outs(s).includes(n);
+/* いつきが当たったときだけ、ひなたが先に内野へ戻る（いつき＋ひなたのペア優先）。それ以外は ORDER の順 */
+const nextRet=(s,hitN)=>(hitN===A&&canRet(s,HN))?HN:(ORDER.find(n=>canRet(s,n))||null);
+/* 外野の移動コスト：隣のゾーン=1、上↔下など遠い移動=3 */
+const ADJ={top:['ctr','cor'],bot:['ctr','corB'],ctr:['top','bot','cor','corB'],cor:['top','ctr'],corB:['bot','ctr']};
+const DIST=(a,b)=>!a||a===b?0:ADJ[a].includes(b)?1:3;
+/* 外野の人数ごとの配置枠：センター最大2／上下は各最大2／7人目だけカド */
+function layout(names,prev){
+  const k=names.length,combos=[];
+  if(k>=7){for(const cz of['cor','corB'])combos.push({ctr:2,top:2,bot:2,[cz]:1})}
+  else for(let c=0;c<=2;c++)for(let t=1;t<=2;t++){const b=k-c-t;if(b>=1&&b<=2)combos.push({ctr:c,top:t,bot:b})}   /* 上・下は必ず1人以上（がら空きを作らない） */
+  const idealC=k===3?1:2,idealS=Math.min(k,6)-idealC;
+  let best=null,bestZ=null;
+  for(const cap of combos){
+    const as={},rem={...cap};
+    (function rec(i){
+      if(i===k){
+        const zs={top:[],bot:[],ctr:[],cor:[],corB:[]};names.forEach(n=>zs[as[n]].push(n));
+        const c=zs.ctr.length,t=zs.top.length,b=zs.bot.length;
+        const cornerP=[...zs.cor,...zs.corB][0];
+        const sc=[
+          CM.filter(n=>names.includes(n)&&as[n]!=='ctr').length,      /* ①いつき・ひなたは必ずセンター */
+          Math.abs(c-idealC)+Math.abs(t+b-idealS),                    /* ②人数ごとの基本配置 */
+          Math.abs(t-b),                                              /* ③上下のバランス */
+          zs.ctr.filter(isF).length,                                  /* ④女子はサイド優先（センターは枠が余らない時だけ） */
+          Math.abs(zs.top.filter(isF).length-zs.bot.filter(isF).length), /* ⑤女子は逆サイドに分ける */
+          [zs.top,zs.bot].filter(a=>a.length&&a.every(isF)).length,   /* ⑥女子だけのサイドを減らす */
+          names.reduce((a,n)=>a+DIST(prev[n],as[n]),0),               /* ⑦動きが少ない方（今いる人はなるべく動かさない） */
+          zs.ctr.filter(n=>!isF(n)).reduce((a,n)=>a+tier(n),0),       /* ⑧センターは強い男子（動かさずに済む範囲で） */
+          cornerP?-tier(cornerP):0,                                   /* ⑨カドは一番弱い男子 */
+          names.map(n=>n+as[n]).sort().join()
+        ];
+        if(!best||cmp(sc,best)<0){best=sc;bestZ=zs}
+        return}
+      for(const z of Z){
+        if(!rem[z])continue;
+        if((z==='cor'||z==='corB')&&isF(names[i]))continue;
+        rem[z]--;as[names[i]]=z;rec(i+1);rem[z]++}
+    })(0);
+  }
+  const o=n=>CM.indexOf(n)<0?9:CM.indexOf(n);
+  bestZ.ctr.sort((x,y)=>o(x)-o(y));
+  return bestZ;
+}
+function cmp(a,b){for(let i=0;i<a.length;i++){if(a[i]<b[i])return -1;if(a[i]>b[i])return 1}return 0}
+/* 1回当たったときの処理（状態sを直接更新）。戻り値＝戻った人 */
+function applyHit(s,n){
+  const prev={};Z.forEach(z=>s[z].forEach(x=>prev[x]=z));
+  s.inf=s.inf.filter(x=>x!==n);
+  const r=nextRet(s,n);
+  if(r){s.inf.push(r);s.ret.push(r);prev[n]=prev[r];delete prev[r]}
+  const names=outs(s).filter(x=>x!==r).concat(n);
+  const L=layout(names,prev);
+  for(const z of Z)s[z]=L[z];
+  return {r,prev};
+}
+/*ENGINE_END*/
+let S=init(),H=[];
 const MID='いつき';
-function pickRet(s,n){
-  const c=cands(s);if(!c.length)return null;
-  const pref=n==='いつき'?'はると':(n==='ひなた'||n==='かなた')?'ゆうき':isF(n)?'そうすけ':null;
-  const non=c.filter(x=>x!=='そうすけ');
-  if(pref&&c.includes(pref)&&(pref!=='そうすけ'||!non.length))return pref;
-  return non[0]||c[0];
-}
-function place(s,p){
-  const total=outs(s).length+1;
-  if(total===4)for(const k of CM){if(k===p)continue;const z=SIDES.find(z=>s[z].includes(k));if(z){s[z]=s[z].filter(x=>x!==k);s.ctr.splice(k===A?0:(s.ctr[0]===A?1:0),0,k);}}
-  if(CM.includes(p)){s.ctr.splice(p===A?0:(s.ctr[0]===A?1:0),0,p);return}
-  if(total===7&&isF(p)){const g=SIDES.find(z=>s[z].some(isF));const z=g?SIDES.find(x=>x!==g):(s.top.length<=s.bot.length?'top':'bot');s[z].push(p);return}
-  if(total===7){
-    if(M.includes(p)){const z=SIDES.filter(z=>s[z].some(n=>!isF(n)&&!M.includes(n)&&!CM.includes(n))).sort((a,b)=>s[a].some(n=>M.includes(n))-s[b].some(n=>M.includes(n)))[0];
-      if(z){const o=s[z].find(n=>!isF(n)&&!M.includes(n)&&!CM.includes(n));s[z]=s[z].map(n=>n===o?p:n);const i=s.ctr.indexOf(A);(i>=0?i>(s.ctr.length-1)/2:z==='bot')?s.corB.push(o):s.cor.push(o);return}}
-    const i=s.ctr.indexOf(A);(i>=0&&i>(s.ctr.length-1)/2?s.corB:s.cor).push(p);return}
-  const e=SIDES.find(z=>!s[z].length);if(e){s[e].push(p);return}
-  if(isF(p)){
-    const g=SIDES.find(z=>s[z].some(isF));
-    const z=g?SIDES.find(x=>x!==g):(s.top.length<=s.bot.length?'top':'bot');
-    s[z].push(p);return}
-  const gs=SIDES.find(z=>s[z].some(isF)&&!s[z].some(n=>!isF(n)));
-  if(gs){s[gs].push(p);return}
-  if(M.includes(p)&&s.ctr.includes(A)&&s.ctr.includes('はると')){const f=SIDES.find(z=>!s[z].some(n=>M.includes(n)));s[f||(s.top.length<=s.bot.length?'top':'bot')].push(p);return}
-  if(M.includes(p)){
-    const z=SIDES.filter(z=>s[z].some(n=>!isF(n)&&!M.includes(n)&&!CM.includes(n))).sort((a,b)=>s[a].some(n=>M.includes(n))-s[b].some(n=>M.includes(n)))[0];
-    if(z){const o=s[z].find(n=>!isF(n)&&!M.includes(n));s[z]=s[z].map(n=>n===o?p:n);s.ctr.push(o);return}
-  }
-  s.ctr.push(p);
-}
-function girlToSide(s,n,z,i){
-  const g=SIDES.find(x=>s[x].some(isF));
-  let c=(g?SIDES.filter(x=>x!==g):SIDES).filter(x=>s[x].some(m=>!isF(m)));
-  if(!c.length)c=SIDES.filter(x=>s[x].some(m=>!isF(m)));
-  if(!c.length)return;
-  const tr=x=>Math.min(...s[x].filter(m=>!isF(m)).map(tier));
-  const t=c.slice().sort((a,b)=>tr(a)-tr(b))[0],ms=s[t].filter(m=>!isF(m));
-  s[t]=s[t].filter(isF);s[t].push(n);
-  s[z][i]=ms[0];ms.slice(1).forEach(m=>s.ctr.push(m));
-}
-function strongC(s){
-  if(s.ctr.includes(A)||s.ctr.includes('はると')||s.ctr.some(n=>M.includes(n)))return;
-  const x=s.ctr.find(n=>n==='ゆうき'||n==='そうすけ');
-  const mm=M.find(n=>SIDES.some(z=>s[z].includes(n)));const z=mm&&SIDES.find(z=>s[z].includes(mm));
-  if(!x||!z)return;
-  s.ctr=s.ctr.map(n=>n===x?mm:n);
-  s[z]=s[z].map(n=>n===mm?x:n);
-}
-function sideSup(s){
-  if(!(s.ctr.includes(A)&&s.ctr.includes('はると')))return;
-  const sd=n=>SIDES.find(z=>s[z].includes(n));
-  for(const x of ['ゆうき','そうすけ']){
-    if(!s.ctr.includes(x))continue;
-    const mz=sd('ひなた'),sz=sd('かなた');
-    const mc=z=>s[z].filter(n=>!isF(n)).length;
-    let t=(mz&&s[mz].every(n=>n==='ひなた')&&mc(mz)<2)?mz:SIDES.filter(z=>mc(z)<2).sort((a,b)=>s[a].length-s[b].length||((b===sz)-(a===sz)))[0];
-    if(!t)continue;
-    s.ctr=s.ctr.filter(n=>n!==x);s[t].push(x);
-  }
-}
-const tier=n=>isF(n)?9:(n===A||n==='はると')?1:M.includes(n)?2:3;
-function tierSwap(s){
-  if(outs(s).length!==3||s.ctr.length!==1||s.top.length!==1||s.bot.length!==1)return;
-  const c=s.ctr[0],z=tier(s.top[0])<=tier(s.bot[0])?'top':'bot';
-  const b=s[z][0];
-  if(tier(b)<tier(c)){s.ctr=[b];s[z]=[c]}
-}
-function norm(s){
-  tierSwap(s);
-  strongC(s);
-  if(outs(s).length<4)return;
-  sideSup(s);
-  for(const z of SIDES){
-    if(!s[z].some(isF)||s[z].some(m=>!isF(m)))continue;
-    let c=s.ctr.filter(m=>!CM.includes(m)&&!isF(m));if(!c.length&&s.ctr.includes(A)&&s.ctr.includes('はると'))c=['はると'];
-    if(!c.length||s.ctr.length<2)continue;
-    const m=c.find(x=>M.includes(x))||c[0];
-    s.ctr=s.ctr.filter(x=>x!==m);s[z].push(m);
-  }
-}
 function hit(n){
+  if(S.inf.length<=1)return;
   H.push(JSON.stringify(S));
-  S.inf=S.inf.filter(x=>x!==n);
-  const r=pickRet(S,n);
-  if(r){const z=Z.find(z=>S[z].includes(r));const i=S[z].indexOf(r);S[z][i]=n;S.inf.push(r);S.ret.push(r);if(isF(n)&&z!=='top'&&z!=='bot')girlToSide(S,n,z,i)}
-  else place(S,n);norm(S);
+  applyHit(S,n);
   render();
 }
 const chips={};
@@ -141,16 +121,21 @@ function render(){
 }
 function loc(n){const z=Z.find(z=>S[z].includes(n));if(!z)return'内野（待機中）';return{top:'外野・上',bot:'外野・下',ctr:'外野・センター',cor:'外野・カド（上）',corB:'外野・カド（下）'}[z]}
 function info(){
-  const o=outs(S).length,c=cands(S);
-  const gs=['つむぎ','りん'].filter(n=>outs(S).includes(n));
+  const o=outs(S).length,c=ORDER.filter(n=>!S.ret.includes(n)&&outs(S).includes(n));
+  const gs=GIRLS.filter(n=>outs(S).includes(n));
   const gz=new Set(gs.map(loc));
-  let gt=!gs.length?'なし（女子は内野）':gs.map(n=>n+'→'+loc(n)).join(' / ')+(gz.size===2?'　★逆サイド展開':'')+(o>=4&&gs.length?'　★男子サポート':'');
+  const gt=!gs.length?'なし（女子は内野）':gs.map(n=>n+'→'+loc(n)).join(' / ')+(gz.size===2?'　★逆サイド展開':'');
+  const pair=CM.every(k=>S.ctr.includes(k));
+  const tt=pair?'いつき＋ひなた センター縦2枚 成立 ★':S.ret.includes(HN)?'ひなたが内野に復帰中（ひなたが再び当たると、いつきと縦2枚）':'ひなたセンター待機 ／ いつきが当たるとひなたが内野に戻り、いつきがセンターへ';
+  const cn=(S.cor[0]||S.corB[0]);
   document.getElementById('info').innerHTML=
    `<div><b>外野人数</b>${o}人 ／ 内野${S.inf.length}人</div>`+
+   `<div><b>縦攻撃</b>${tt}</div>`+
    `<div><b>復帰待ち</b>${c.length?c.join(' → '):'なし（復帰枠 終了）'}</div>`+
-   `<div><b>復帰の対応</b>いつき→はると ／ ひなた・かなた→ゆうき ／ 女子→そうすけ（最後）</div>`+
+   `<div><b>復帰のルール</b>ゆうき → そうすけ → ひなた の順に1人1回だけ（いつきが当たったときだけ、ひなたが先に戻る）。一度外野に出た人はもう戻れません</div>`+
    `<div><b>女子ルール</b>${gt}</div>`+
-   `<div><b>カド配置</b>${(S.cor[0]||S.corB[0])?(S.cor[0]||S.corB[0])+'（7人目）':'なし（外野7人で発動）'}</div>`;
+   `<div><b>カド配置</b>${cn?cn+'（7人目）':'なし（外野7人で発動）'}</div>`+
+   (S.inf.length<=1?`<div><b>内野</b>あと1人（次に当たると試合終了）</div>`:'');
 }
 document.getElementById('undo').onclick=()=>{if(H.length){S=JSON.parse(H.pop());render()}};
 document.getElementById('reset').onclick=()=>{S=init();H=[];render()};
