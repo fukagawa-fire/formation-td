@@ -22,7 +22,7 @@ h1{font-size:17px;margin:4px 0 8px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;line-height:1.7}.panel b{display:inline-block;min-width:6.5em}
 .hint{font-size:12px;opacity:.7;margin:4px 0}
 </style></head><body>
-<h1>🤝 深川TD 陣形マップ<br><small style="font-size:11px;opacity:.7;font-weight:600">FUKAGAWA TD FORMATION ｜ v<span id="ver">1.0</span></small></h1>
+<h1>🤝 深川TD 陣形マップ<br><small style="font-size:11px;opacity:.7;font-weight:600">FUKAGAWA TD FORMATION ｜ v<span id="ver">2.0</span></small></h1>
 <div class="hint">内野の選手をタップ ＝ 当たって外野へ。いつき・はると＝センターメイン</div>
 <div class="court">
 <div id="red1"><span class="lab">進入禁止</span></div><div id="top"><span class="lab">外野：上</span></div><div id="cor"><span class="lab">カド</span></div>
@@ -39,7 +39,7 @@ let S=init(),H=[];
 const outs=s=>Z.flatMap(z=>s[z]);
 const isF=n=>P[n]==='f';
 const cands=s=>Q.filter(n=>!s.ret.includes(n)&&outs(s).includes(n));
-const MID='ひなた';
+const MID='いつき';
 function pickRet(s,n){
   const c=cands(s);if(!c.length)return null;
   const pref=n==='いつき'?'はると':(n==='ひなた'||n==='かなた')?'ゆうき':isF(n)?'そうすけ':null;
